@@ -7,7 +7,6 @@ package ru.shevel.rsp
 import cats.effect.*
 import com.comcast.ip4s.*
 import io.circe.generic.auto.*
-import io.circe.parser.*
 import io.circe.syntax.*
 import org.http4s.*
 import org.http4s.circe.*
