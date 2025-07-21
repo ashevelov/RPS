@@ -23,7 +23,7 @@ import scala.util.Try
 object Http extends IOApp.Simple:
   implicit val loggerFactory: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
-  val gameService: HttpRoutes[IO] = HttpRoutes.of[IO] {
+  private val gameService: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req@GET -> Root / "getPlayer" =>
       val player_id = IO.fromOption(req.params("player_id").toLongOption)(Exception("player_id must be a number"))
       Game.getPlayer(player_id).flatMap(player => Ok(player.asJson))
