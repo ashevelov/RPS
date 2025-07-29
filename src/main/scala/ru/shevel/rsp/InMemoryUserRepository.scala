@@ -1,7 +1,8 @@
 package ru.shevel.rsp
 
-import cats.effect._
-import cats.syntax.all._
+import cats.effect.*
+import cats.syntax.all.*
+
 import scala.util.Random
 
 class InMemoryUserRepository extends PlayerRepository[IO] {
@@ -35,9 +36,11 @@ class InMemoryUserRepository extends PlayerRepository[IO] {
 
   override def update(player: Player): IO[Unit] =
     IO {
+      println("update")
       players = players.map { p =>
         if (p.id == player.id) player else p
       }
+      println("players: " + players.mkString("\n"))
     }
 
   override def delete(id: Long): IO[Unit] =

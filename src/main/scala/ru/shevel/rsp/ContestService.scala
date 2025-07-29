@@ -1,11 +1,11 @@
 package ru.shevel.rsp
 
-import cats.effect.{IO, Ref}
 import cats.effect.kernel.Sync
+import cats.effect.unsafe.implicits.global
+import cats.effect.{IO, Ref}
 import cats.syntax.all.*
 
 import scala.util.Random
-import cats.effect.unsafe.implicits.global
 
 class ContestService(using Sync[IO]){
   private lazy val contestsRef: Ref[IO, List[Contest]] = Ref.of(List.empty[Contest]).unsafeRunSync()
@@ -55,35 +55,48 @@ class ContestService(using Sync[IO]){
   }
 
   def selectCard(contestId: Long, player_id: Long, card: Card): IO[Unit] = {
-    println(s"selectCard: contestId: $contestId, player_id: $player_id, card: $player_id")
+    println(s"selectCard: contestId: $contestId, player_id: $player_id, card: $card")
     for {
       contests <- contestsRef.get
-      updatedContests <- IO {
-        contests.map { contest =>
-          if (contest.id == contestId && contest.winner.isEmpty) {
-            val updatedOpponents = contest.opponents.map { opponent =>
-              if (opponent.player.id == player_id) {
-                opponent.copy(select = card)
-              } else {
-                opponent
-              }
-            }
-            checkRound(contest.copy(opponents = updatedOpponents))
-          } else {
-            contest
-          }
-        }
-      }
-      _ <- contestsRef.set(updatedContests)
+      (sought_contest_list, other) = contests.partition(contest => contest.id == contestId && contest.winner.isEmpty)
+      updatedContests <- updateContests(sought_contest_list, player_id, card)
+      _ <- contestsRef.set(updatedContests ++ other)
     } yield ()
   }
 
-  private def checkRound(contest:Contest): Contest = {
-    if (contest.opponents.forall(_.select != Card.None)) {
+  private def updateContests(sought_contest_list:List[Contest], player_id: Long, card: Card):IO[List[Contest]] = {
+    sought_contest_list.map{ contest =>
+      for{
+        new_sought_contest <- contest.updateCard(player_id, card)
+        updatedContest <- checkRound(new_sought_contest)
+      } yield {
+        updatedContest
+      }
+    }.sequence
+  }
+
+  private def checkRound(contest:Contest): IO[Contest] = {
+    if (contest.opponents.forall(_.select != Card.None))
       contest.nextRound()
-    } else {
-      contest
+    else
+      IO(contest)
+  }
+
+  def joinIfLongWait(opponent: Opponent): IO[Option[Contest]] = {
+    contestsRef.get.flatMap { contests =>
+      val con = contests.find(c => c.isOld && !c.isFilled)
+      val result = con.map(_ => create(opponent))
+      result.sequence
     }
+  }
+
+  def clean(): IO[Unit] ={
+    for {
+      contests <- contestsRef.get
+      (abandoned, lives) = contests.partition(contest => contest.isAbandoned || (contest.winner != 0 && contest.isOld))
+      _ <- contestsRef.set(lives)
+      _ <- Game.bot.removeContest(abandoned.map(_.id))
+    } yield IO.unit
   }
 }
 

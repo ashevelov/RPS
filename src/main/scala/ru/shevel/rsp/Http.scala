@@ -19,13 +19,18 @@ import org.typelevel.log4cats.slf4j.Slf4jFactory
 
 import scala.util.Try
 
-object Http extends IOApp.Simple:
+object Http:
   implicit val loggerFactory: LoggerFactory[IO] = Slf4jFactory.create[IO]
 
   private val gameService: HttpRoutes[IO] = HttpRoutes.of[IO] {
     case req@GET -> Root / "getPlayer" =>
       val player_id = IO.fromOption(req.params("player_id").toLongOption)(Exception("player_id must be a number"))
       Game.getPlayer(player_id).flatMap(player => Ok(player.asJson))
+
+    case req@GET -> Root / "setPlayerName" =>
+      val player_id = IO.fromOption(req.params("player_id").toLongOption)(Exception("player_id must be a number"))
+      val player_name = IO(req.params("player_name"))
+      Game.setPlayerName(player_id, player_name).flatMap(_ => Ok("successful"))
       
     case req@GET -> Root / "findContest" =>
       val player_id = IO.fromOption(req.params("player_id").toLongOption)(Exception("player_id must be a number"))
@@ -51,8 +56,8 @@ object Http extends IOApp.Simple:
   // 3: Build the actual server
   val server: Resource[IO, Server] = EmberServerBuilder
     .default[IO]
-//    .withHost(ipv4"192.168.2.17")
     .withHost(ipv4"192.168.1.87")
+//    .withHost(ipv4"92.51.44.184")
     .withPort(port"8080")
     .withHttpApp(httpApp)
     .build
