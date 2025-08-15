@@ -75,11 +75,31 @@ class ContestService(using Sync[IO]){
     }.sequence
   }
 
+  private def surrenderContests(sought_contest_list: List[Contest], player_id: Long): IO[List[Contest]] = {
+    sought_contest_list.map { contest =>
+      for {
+        updatedContest <- contest.surrender(player_id)
+      } yield {
+        updatedContest
+      }
+    }.sequence
+  }
+
   private def checkRound(contest:Contest): IO[Contest] = {
     if (contest.opponents.forall(_.select != Card.None))
       contest.nextRound()
     else
       IO(contest)
+  }
+  
+  def surrender(contestId: Long, player_id: Long): IO[Unit] = {
+    println(s"surrender: contestId: $contestId, player_id: $player_id")
+    for {
+      contests <- contestsRef.get
+      (sought_contest_list, other) = contests.partition(contest => contest.id == contestId && contest.winner.isEmpty)
+      updatedContests <- surrenderContests(sought_contest_list, player_id)
+      _ <- contestsRef.set(updatedContests ++ other)
+    } yield ()
   }
 
   def joinIfLongWait(opponent: Opponent): IO[Option[Contest]] = {

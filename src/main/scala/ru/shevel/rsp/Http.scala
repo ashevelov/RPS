@@ -45,6 +45,11 @@ object Http:
       val player_id = IO.fromOption(req.params("player_id").toLongOption)(Exception("player_id must be a number"))
       val card = IO.fromTry(Try(Card.valueOf(req.params("card"))))
       Game.selectCard(contest_id, player_id, card).flatMap(contest => Ok("successful"))
+
+    case req@GET -> Root / "surrender" =>
+      val contest_id = IO.fromOption(req.params("contest_id").toLongOption)(Exception("contest_id must be a number"))
+      val player_id = IO.fromOption(req.params("player_id").toLongOption)(Exception("player_id must be a number"))
+      Game.surrender(contest_id, player_id).flatMap(contest => Ok("successful"))
       
     case GET -> Root / "map" =>
       Ok("World.current.regions.asJson")
@@ -56,8 +61,8 @@ object Http:
   // 3: Build the actual server
   val server: Resource[IO, Server] = EmberServerBuilder
     .default[IO]
-    .withHost(ipv4"192.168.1.87")
-//    .withHost(ipv4"92.51.44.184")
+//    .withHost(ipv4"192.168.1.87")
+    .withHost(ipv4"92.51.44.184")
     .withPort(port"8080")
     .withHttpApp(httpApp)
     .build

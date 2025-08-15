@@ -55,6 +55,14 @@ object Game:
     } yield IO.unit
   }
 
+  def surrender(contest_id: IO[Long], player_id: IO[Long]): IO[Unit] = {
+    for {
+      con_id <- contest_id
+      p_id <- player_id
+      _ <- contestService.surrender(con_id, p_id)
+    } yield IO.unit
+  }
+
   def joinToOldContest(player_id: IO[Long]):IO[Option[Contest]] = {
     for{
       player <- getPlayer(player_id)

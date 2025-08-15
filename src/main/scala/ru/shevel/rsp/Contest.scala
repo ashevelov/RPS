@@ -28,6 +28,17 @@ case class Contest(id:Long, opponents: List[Opponent], roundLog: List[RoundLog],
     this.copy(opponents = new_opponents)
   }
 
+  def surrender(player_id: Long): IO[Contest] = {
+    for{
+      newOpponents <- IO{List(
+        opponents.find(_.player.id == player_id).head.copy(hp = 0),
+        opponents.find(_.player.id != player_id).head
+        )}
+      (updatedOpponents, winner) <- updateOpponents(newOpponents)
+    } yield this.copy(opponents = updatedOpponents, winner = winner)
+  }
+  
+
   def bothTurnsDone(): IO[Boolean] = IO {
     opponents.forall(_.select != Card.None)
   }

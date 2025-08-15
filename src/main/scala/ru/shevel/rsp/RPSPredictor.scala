@@ -62,7 +62,8 @@ class RPSPredictor(using Sync[IO]) {
             model <- modelRef.get
             rate = model.getOrElse(key, CardProbability())
             predict <- rate.predict()
-            card <- predict.next()
+            predictByFactor <- predict.comboFactor(oPrevCard, oFactor)
+            card <- predictByFactor.next()
         } yield card
     }
 }
